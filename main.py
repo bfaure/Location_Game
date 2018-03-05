@@ -87,14 +87,36 @@ def import_boundary_data(place_dict,fname='data/admin_level_8.geojson'):
 
 def save_compiled_data(place_list,fname='data/compiled.tsv'):
 	f=open(fname,'w')
+	num_saved=0
 	for place in place_list:
-		if place.coordinates!=None:
+		if place.coordinates!=None and place.population>2000:
 			f.write('%s\t%s\t%d\t%s\n'%(
 				place.city,
 				place.state,
 				place.population,
 				str(place.coordinates)))
+			num_saved+=1
 	f.close()
+	return num_saved
+
+def boxify_coords(place_list):
+	num_boxified=0
+	for p in place_list:
+		if p.coordinates!=None:
+			min_lat,max_lat=None,None
+			min_long,max_long=None,None
+			for c in p.coordinates[0][0]:
+				if c[0]<min_lat or min_lat==None:
+					min_lat=c[0]
+				if c[0]>max_lat or max_lat==None:
+					max_lat=c[0]
+				if c[1]<min_long or min_long==None:
+					min_long=c[1]
+				if c[1]>max_long or max_long==None:
+					max_long=c[1]
+			p.coordinates=[[min_lat,min_long],[max_lat,max_long]]
+			num_boxified+=1
+	return num_boxified
 
 def compile_data():
 	sys.stdout.write('\n'*2)
@@ -118,9 +140,13 @@ def compile_data():
 	num_matched=import_boundary_data(place_dict)
 	sys.stdout.write(' loaded %d boundaries!\n'%num_matched)
 
+	sys.stdout.write('Fixing coordinates...')
+	num_boxified=boxify_coords(place_list)
+	sys.stdout.write(' fixed %d coordinates!\n'%num_boxified)
+
 	sys.stdout.write('Saving compiled data...')
-	save_compiled_data(place_list)
-	sys.stdout.write(' saved %d locations!\n'%num_matched)
+	num_saved=save_compiled_data(place_list)
+	sys.stdout.write(' saved %d locations!\n'%num_saved)
 
 	sys.stdout.write('\n')
 	sys.stdout.write('='*25)
@@ -188,9 +214,6 @@ def main():
 
 	places=load_compiled_data()
 	print "Found %d cities."%len(places)
-
-	for p in places:
-		print '%s, %s pop: %s'%(p['city'],p['state'],p['pop'])
 
 	if not os.path.exists('data/maps/usa_map.png'):
 		sys.stdout.write('ERROR: Could not locate usa_map.png\n')
