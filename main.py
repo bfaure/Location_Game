@@ -1,6 +1,10 @@
 import sys
 import operator
 
+from PyQt4 import QtGui, QtCore
+from PyQt4.QtCore import *
+from PyQt4.QtGui import *
+
 class Place:
 	def __init__(self,city=None,state=None,population=None):
 		self.city=city
@@ -27,20 +31,36 @@ def import_population_data(fname='data/sub-est2016_all.csv'):
 				places.append(new_place)
 	return places
 
-sys.stdout.write('\n'*2)
-sys.stdout.write('='*25)
-sys.stdout.write('\n')
+class MainWindow(QWidget):
+	def __init__(self,places=None,parent=None):
+		super(MainWindow,self).__init__()
+		self.places=places
+		self.init_ui()
+	def init_ui(self):
+		print 'here'
+		self.show()
 
-sys.stdout.write('Importing data...')
-places=import_population_data()
-places.sort(key=operator.attrgetter('population'))
-sys.stdout.write(' loaded %d locations!'%len(places))
+def main():
+	sys.stdout.write('\n'*2)
+	sys.stdout.write('='*25)
+	sys.stdout.write('\n')
 
-print places[-10:-1]
+	sys.stdout.write('Importing data...')
+	places=import_population_data()
+	places.sort(key=operator.attrgetter('population'))
+	sys.stdout.write(' loaded %d locations!'%len(places))
 
-sys.stdout.write('\n')
-sys.stdout.write('='*25)
-sys.stdout.write('\n'*2)
+	sys.stdout.write('\n')
+	sys.stdout.write('='*25)
+	sys.stdout.write('\n'*2)
+
+	pyqt_app=QApplication(sys.argv)
+	_=MainWindow()
+	sys.exit(pyqt_app.exec_())
+
+
+if __name__ == '__main__':
+	main()
 
 
 
