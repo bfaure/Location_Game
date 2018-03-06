@@ -159,26 +159,29 @@ class MapWidget(QWidget):
 		super(MapWidget,self).__init__()
 		self.parent=parent
 		self.fname=fname
-
+		self.vertical=True
 
 	def paintEvent(self,e):
-		print 'HEREB'
 		qp=QPainter()
 		qp.begin(self)
 		self.drawWidget(qp)
 		qp.end()
 
 	def drawWidget(self,qp):
-		print 'HERE'
 		height,width=self.size().height(),self.size().width()
 
 		self.pic=QPixmap(self.fname)
-		self.pic=self.pic.scaled(width-50,height-75)
+		self.pic=self.pic.scaled(width-50,height-50)
 		qp.drawPixmap(0,0,self.pic)
 
 		qp.setBrush(QColor(0,0,0))
-		qp.drawRect(0,0,1000,1000)
 
+		if self.vertical: # drawing vertical line
+			mid_pt=int(width)/2
+			qp.drawLine(mid_pt,0,mid_pt,height-50)
+		else: # horizontal line
+			mid_pt=int(height)/2
+			qp.drawLine(0,mid_pt,width,mid_pt)
 
 
 class MainWindow(QWidget):
@@ -203,7 +206,7 @@ class MainWindow(QWidget):
 		#self.main_image=QLabel()
 		main_row=QHBoxLayout()
 		main_row.addStretch()
-		main_row.addWidget(self.main_image)
+		main_row.addWidget(self.main_image,2)
 		main_row.addStretch()
 
 		target_row=QHBoxLayout()
