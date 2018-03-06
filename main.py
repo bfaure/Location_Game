@@ -1,6 +1,8 @@
 import sys,os
 import operator
 
+from random import randint
+
 import json
 
 from PyQt4 import QtGui, QtCore
@@ -152,6 +154,32 @@ def compile_data():
 	sys.stdout.write('='*25)
 	sys.stdout.write('\n'*2)
 
+class MapWidget(QWidget):
+	def __init__(self,fname,parent=None):
+		super(MapWidget,self).__init__()
+		self.parent=parent
+		self.fname=fname
+
+
+	def paintEvent(self,e):
+		print 'HEREB'
+		qp=QPainter()
+		qp.begin(self)
+		self.drawWidget(qp)
+		qp.end()
+
+	def drawWidget(self,qp):
+		print 'HERE'
+		height,width=self.size().height(),self.size().width()
+
+		self.pic=QPixmap(self.fname)
+		self.pic=self.pic.scaled(width-50,height-75)
+		qp.drawPixmap(0,0,self.pic)
+
+		qp.setBrush(QColor(0,0,0))
+		qp.drawRect(0,0,1000,1000)
+
+
 
 class MainWindow(QWidget):
 	def __init__(self,places=None,parent=None):
@@ -162,35 +190,76 @@ class MainWindow(QWidget):
 
 	def init_vars(self):
 		self.image_fname='data/maps/usa_map.png'
-		self.min_width=1000
+		self.min_width=1200
 		self.min_height=800
+		self.score=1
 
 	def init_ui(self):
 		
 		self.setWindowTitle('Location Game')
 		self.window_layout=QVBoxLayout(self)
-		self.main_image=QLabel()
+		self.window_layout.addSpacing(25)
+		self.main_image=MapWidget(self.image_fname,self)
+		#self.main_image=QLabel()
 		main_row=QHBoxLayout()
 		main_row.addStretch()
 		main_row.addWidget(self.main_image)
 		main_row.addStretch()
+
+		target_row=QHBoxLayout()
+		target_label=QLabel('Target: ')
+		self.target_box=QLineEdit()
+		self.target_box.setEnabled(False)
+		target_row.addWidget(target_label)
+		target_row.addSpacing(30)
+		target_row.addWidget(self.target_box)
+		target_row.addStretch()
+
+		self.toolbar=QMenuBar(self)
+		self.toolbar.setFixedWidth(self.min_width)
+
+		file_menu=self.toolbar.addMenu("File")
+		file_menu.addAction("Quit",self.quit,QKeySequence("Ctrl+Q"))
+
 		self.window_layout.addLayout(main_row,2)
+		self.window_layout.addLayout(target_row)
 		self.resize(self.min_width,self.min_height)
 		self.update_picture()
+		self.set_target()
 		self.show()
+		self.raise_()
+
+
+	def quit(self):
+		sys.exit(1)
+
+	def closeEvent(self,e):
+		self.quit()
+
+	def set_target(self):
+		start_idx=-1*self.score
+		end_idx=-1*self.score-10
+		idx=randint(end_idx,start_idx)
+		self.current_target=self.places[idx]
+		self.target_box.setText('%s, %s'%(
+			self.current_target['city'],
+			self.current_target['state']))
+
 
 	def update_picture(self):
 		sys.stdout.write('\nImporting image...')
-		self.current_frame=QPixmap(self.image_fname)
-		self.current_frame=self.current_frame.scaled(self.size().width()-50,self.size().height()-50)
-		self.main_image.setPixmap(self.current_frame)
+		self.main_image.repaint()
+		#self.current_frame=QPixmap(self.image_fname)
+		#self.current_frame=self.current_frame.scaled(self.size().width()-50,self.size().height()-75)
+		#self.main_image.setPixmap(self.current_frame)
 		sys.stdout.write(' done!\n')
 
 	def resizeEvent(self,e):
 		sys.stdout.write('\nImporting image...')
-		self.current_frame=QPixmap(self.image_fname)
-		self.current_frame=self.current_frame.scaled(self.size().width()-50,self.size().height()-50)
-		self.main_image.setPixmap(self.current_frame)
+		#self.current_frame=QPixmap(self.image_fname)
+		#self.current_frame=self.current_frame.scaled(self.size().width()-50,self.size().height()-75)
+		#self.main_image.setPixmap(self.current_frame)
+		self.toolbar.setFixedWidth(self.size().width())
 		sys.stdout.write(' done!\n')		
 
 
@@ -212,6 +281,9 @@ def load_compiled_data(fname='data/compiled.tsv'):
 
 def main():
 
+	top_left='49.23N,125.14W'
+	bottom_right='29.17N,63.35W'
+
 	places=load_compiled_data()
 	print "Found %d cities."%len(places)
 
@@ -222,12 +294,10 @@ def main():
 		return
 	else:
 		sys.stdout.write('Map image found!\n')
-
-	'''
+	
 	pyqt_app=QApplication(sys.argv)
-	_=MainWindow()
+	_=MainWindow(places)
 	sys.exit(pyqt_app.exec_())
-	'''
 
 if __name__ == '__main__':
 	main()
