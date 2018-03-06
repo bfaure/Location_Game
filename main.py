@@ -178,6 +178,23 @@ class MapWidget(QWidget):
 		self.last_x,self.last_y=event.x(),event.y()
 		self.repaint()
 
+	def mousePressEvent(self,event):
+		# when mouse clicks somewhere
+		if self.mouse_present: # if in widget
+			height,width=self.size().height(),self.size().width()
+			if self.vertical:
+				mid_pt=int(width)/2
+				if self.last_x<=mid_pt:
+					self.parent.region_clicked('left')
+				else:
+					self.parent.region_clicked('right')
+			else:
+				mid_pt=int(height)/2
+				if self.last_y<=mid_pt:
+					self.parent.region_clicked('top')
+				else:
+					self.parent.region_clicked('bottom')
+
 	def paintEvent(self,e):
 		qp=QPainter()
 		qp.begin(self)
@@ -264,6 +281,8 @@ class MainWindow(QWidget):
 		self.show()
 		self.raise_()
 
+	def region_clicked(self,desc):
+		print 'Region clicked: %s'%desc
 
 	def quit(self):
 		sys.exit(1)
