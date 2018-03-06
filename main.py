@@ -1,6 +1,10 @@
 import sys,os
 import operator
 
+import ast
+
+from copy import deepcopy
+
 from random import randint
 
 import json
@@ -164,6 +168,18 @@ class MapWidget(QWidget):
 		self.mouse_present=False
 		self.setMouseTracking(True)
 
+		self.orig_dimensions=[22875,11678] # dimensions of original image
+		self.cur_dimensions=self.orig_dimensions # current dimensions of image
+		
+		                 # upper left,     bottom right
+		self.orig_bounds=[[-125.14,49.23],[-63.35,29.17]] # longitude, latitude of orig image
+		self.cur_bounds=self.orig_bounds 
+
+		# amount of longitude & latitude per image pixel
+		self.long_per_pixel=float((self.orig_bounds[0][0]-self.orig_bounds[1][0])/self.orig_dimensions[0])
+		self.lat_per_pixel=float((self.orig_bounds[0][1]-self.orig_bounds[1][1])/self.orig_dimensions[1])
+
+
 	def enterEvent(self,event):
 		# when mouse enters widget
 		self.mouse_present=True
@@ -178,6 +194,24 @@ class MapWidget(QWidget):
 		self.last_x,self.last_y=event.x(),event.y()
 		self.repaint()
 
+	def get_region_bounds(self,desc):
+		# desc is one of ['left','right','top','bottom']
+		# returns the bounding longitude, latitude of the provided region
+		full_bounds=deepcopy(self.cur_bounds)
+		top_left,bottom_right=full_bounds[0],full_bounds[1]
+		if desc=='left': # bottom right longitude different
+			bottom_right[0]=top_left[0]-((top_left[0]-bottom_right[0])/2)
+		elif desc=='right': # top left longitude different
+			top_left[0]=top_left[0]-((top_left[0]-bottom_right[0])/2)
+		elif desc=='top': # bottom right latitude different
+			bottom_right[1]=bottom_right[1]-((top_left[1]-bottom_right[1])/2)
+		elif desc=='bottom': # top left latitude different
+			top_left[1]=bottom_right[1]-((top_left[1]-bottom_right[1])/2)
+		else:
+			raise Exception('get_region_bounds was passed invalid desc!')
+		return [top_left,bottom_right]
+
+
 	def mousePressEvent(self,event):
 		# when mouse clicks somewhere
 		if self.mouse_present: # if in widget
@@ -185,15 +219,15 @@ class MapWidget(QWidget):
 			if self.vertical:
 				mid_pt=int(width)/2
 				if self.last_x<=mid_pt:
-					self.parent.region_clicked('left')
+					self.parent.region_clicked(self.get_region_bounds('left'))
 				else:
-					self.parent.region_clicked('right')
+					self.parent.region_clicked(self.get_region_bounds('right'))
 			else:
 				mid_pt=int(height)/2
 				if self.last_y<=mid_pt:
-					self.parent.region_clicked('top')
+					self.parent.region_clicked(self.get_region_bounds('top'))
 				else:
-					self.parent.region_clicked('bottom')
+					self.parent.region_clicked(self.get_region_bounds('bottom'))
 
 	def paintEvent(self,e):
 		qp=QPainter()
@@ -245,17 +279,17 @@ class MainWindow(QWidget):
 		self.min_width=1200
 		self.min_height=800
 		self.score=1
+		self.current_target=None
 
 	def init_ui(self):
 		
 		self.setWindowTitle('Location Game')
 		self.window_layout=QVBoxLayout(self)
 		self.window_layout.addSpacing(25)
-		self.main_image=MapWidget(self.image_fname,self)
-		#self.main_image=QLabel()
+		self.map_widget=MapWidget(self.image_fname,self)
 		main_row=QHBoxLayout()
 		main_row.addStretch()
-		main_row.addWidget(self.main_image,2)
+		main_row.addWidget(self.map_widget,2)
 		main_row.addStretch()
 
 		target_row=QHBoxLayout()
@@ -281,8 +315,20 @@ class MainWindow(QWidget):
 		self.show()
 		self.raise_()
 
-	def region_clicked(self,desc):
-		print 'Region clicked: %s'%desc
+	def is_within(self,targ_bnd,rgn_bnd):
+		if targ_bnd[0][0]>=rgn_bnd[0][0] and targ_bnd[1][0]<=rgn_bnd[1][0]:
+			if targ_bnd[0][1]<=rgn_bnd[0][1] and targ_bnd[1][1]>=rgn_bnd[1][1]:
+				return True
+		return False
+
+	def region_clicked(self,region_bounds):
+		targ_bounds=self.current_target['coords']
+		print 'new bounds',region_bounds
+		print 'targ bounds',targ_bounds
+		if self.is_within(targ_bounds,region_bounds)==True:
+			print '%s is within the selection'%self.current_target['city']
+		else:
+			print '%s is not within the selection'%self.current_target['city']
 
 	def quit(self):
 		sys.exit(1)
@@ -298,21 +344,28 @@ class MainWindow(QWidget):
 		self.target_box.setText('%s, %s'%(
 			self.current_target['city'],
 			self.current_target['state']))
+		if type(self.current_target['coords']) is str:
+			x=self.current_target['coords']
+			x=ast.literal_eval(x)
+			for i in range(2):
+				for j in range(2):
+					x[i][j]=float(x[i][j])
+			self.current_target['coords']=x
 
 
 	def update_picture(self):
 		sys.stdout.write('\nImporting image...')
-		self.main_image.repaint()
+		self.map_widget.repaint()
 		#self.current_frame=QPixmap(self.image_fname)
 		#self.current_frame=self.current_frame.scaled(self.size().width()-50,self.size().height()-75)
-		#self.main_image.setPixmap(self.current_frame)
+		#self.map_widget.setPixmap(self.current_frame)
 		sys.stdout.write(' done!\n')
 
 	def resizeEvent(self,e):
 		sys.stdout.write('\nImporting image...')
 		#self.current_frame=QPixmap(self.image_fname)
 		#self.current_frame=self.current_frame.scaled(self.size().width()-50,self.size().height()-75)
-		#self.main_image.setPixmap(self.current_frame)
+		#self.map_widget.setPixmap(self.current_frame)
 		self.toolbar.setFixedWidth(self.size().width())
 		sys.stdout.write(' done!\n')		
 
@@ -334,9 +387,6 @@ def load_compiled_data(fname='data/compiled.tsv'):
 
 
 def main():
-
-	top_left='49.23N,125.14W'
-	bottom_right='29.17N,63.35W'
 
 	places=load_compiled_data()
 	print "Found %d cities."%len(places)
