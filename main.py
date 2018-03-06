@@ -168,16 +168,16 @@ class MapWidget(QWidget):
 		self.mouse_present=False
 		self.setMouseTracking(True)
 
-		self.orig_dimensions=[22875,11678] # dimensions of original image
-		self.cur_dimensions=[0,0,22875,11678]
+		self.orig_dimensions=[0,0,22875,11678] # dimensions of original image
+		self.cur_dimensions=deepcopy(self.orig_dimensions)
 		
 		                 # upper left,     bottom right
 		self.orig_bounds=[[-125.14,49.23],[-63.35,29.17]] # longitude, latitude of orig image
 		self.cur_bounds=deepcopy(self.orig_bounds)
 
 		# amount of longitude & latitude per image pixel
-		self.long_per_pixel=float((self.orig_bounds[1][0]-self.orig_bounds[0][0])/self.orig_dimensions[0])
-		self.lat_per_pixel=float((self.orig_bounds[0][1]-self.orig_bounds[1][1])/self.orig_dimensions[1])
+		self.long_per_pixel=float((self.orig_bounds[1][0]-self.orig_bounds[0][0])/self.orig_dimensions[2])
+		self.lat_per_pixel=float((self.orig_bounds[0][1]-self.orig_bounds[1][1])/self.orig_dimensions[3])
 
 		print 'long_per_pixel:',self.long_per_pixel
 		print 'lat_per_pixel:',self.lat_per_pixel
@@ -282,6 +282,15 @@ class MapWidget(QWidget):
 		self.pic=self.pic.copy(rect)
 		self.repaint()
 
+	def restart(self):
+		self.cur_dimensions=deepcopy(self.orig_dimensions)
+		self.cur_bounds=deepcopy(self.orig_bounds)
+		self.pic=QPixmap(self.fname)
+		a,b,c,d=self.cur_dimensions
+		rect=QRect(a,b,c,d)
+		self.vertical=True
+		self.pic=self.pic.copy(rect)
+		self.repaint()
 
 	def paintEvent(self,e):
 		qp=QPainter()
@@ -363,6 +372,7 @@ class MainWindow(QWidget):
 
 		file_menu=self.toolbar.addMenu("File")
 		file_menu.addAction("Quit",self.quit,QKeySequence("Ctrl+Q"))
+		file_menu.addAction("Restart",self.restart,QKeySequence("Ctrl+R"))
 
 		self.window_layout.addLayout(main_row,2)
 		self.window_layout.addLayout(target_row)
@@ -371,6 +381,11 @@ class MainWindow(QWidget):
 		self.set_target()
 		self.show()
 		self.raise_()
+
+	def restart(self):
+		self.score=1
+		self.set_target()
+		self.map_widget.restart()
 
 	def is_within(self,targ_bnd,rgn_bnd):
 		if targ_bnd[0][0]>=rgn_bnd[0][0] and targ_bnd[1][0]<=rgn_bnd[1][0]:
