@@ -269,6 +269,8 @@ class MapWidget(QWidget):
 			pixel_offset=diff/self.lat_per_pixel 
 			new_picture_bounds[3]-=pixel_offset
 
+		new_picture_bounds=[int(e) for e in new_picture_bounds]
+
 		print 'prior image bounds:',self.cur_dimensions
 		print 'new image bounds:',new_picture_bounds
 
@@ -291,7 +293,11 @@ class MapWidget(QWidget):
 		height,width=self.size().height(),self.size().width()
 
 		self.pic=self.pic.scaled(width-50,height-50)
-		qp.drawPixmap(0,0,self.pic)
+		if not self.vertical:
+			self.pic=self.pic.scaled(width/2,height-50)
+			qp.drawPixmap(width/3,0,self.pic)
+		else:
+			qp.drawPixmap(0,0,self.pic)
 
 		qp.setBrush(QColor(0,0,0))
 
