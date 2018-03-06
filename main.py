@@ -160,6 +160,23 @@ class MapWidget(QWidget):
 		self.parent=parent
 		self.fname=fname
 		self.vertical=True
+		self.last_x,self.last_y=None,None # mouse coordinates
+		self.mouse_present=False
+		self.setMouseTracking(True)
+
+	def enterEvent(self,event):
+		# when mouse enters widget
+		self.mouse_present=True
+
+	def leaveEvent(self,event):
+		# when mouse leaves widget
+		self.mouse_present=False
+		self.repaint()
+
+	def mouseMoveEvent(self,event):
+		# when mouse moves in widget
+		self.last_x,self.last_y=event.x(),event.y()
+		self.repaint()
 
 	def paintEvent(self,e):
 		qp=QPainter()
@@ -182,6 +199,21 @@ class MapWidget(QWidget):
 		else: # horizontal line
 			mid_pt=int(height)/2
 			qp.drawLine(0,mid_pt,width,mid_pt)
+
+		if self.mouse_present:
+			opaque_brush=QBrush(QColor(0,0,0,200))
+			qp.setBrush(opaque_brush)
+
+			if self.vertical:
+				if self.last_x<=mid_pt:
+					qp.drawRect(0,0,mid_pt,height-50)
+				else:
+					qp.drawRect(mid_pt,0,width-50,height-50)
+			else: 
+				if self.last_y<=mid_pt:
+					qp.drawRect(0,0,width-50,mid_pt)
+				else:
+					qp.drawRect(0,mid_pt,width,height)
 
 
 class MainWindow(QWidget):
