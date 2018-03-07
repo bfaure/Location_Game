@@ -172,6 +172,7 @@ class MapWidget(QWidget):
 		width,height=self.pic.size().width(),self.pic.size().height()
 		self.orig_dimensions=[0,0,width,height] # dimensions of original image
 		self.cur_dimensions=deepcopy(self.orig_dimensions)
+		self.cur_aspect_ratio=float(width)/float(height) # width/height ratio, used to scale image
 		
 		                 # upper left,     bottom right
 		self.orig_bounds=[[-125.14,49.23],[-63.35,29.17]] # longitude, latitude of orig image
@@ -281,6 +282,7 @@ class MapWidget(QWidget):
 		self.cur_dimensions=new_picture_bounds
 		self.cur_bounds=new_geo_bounds
 		a,b,c,d=self.cur_dimensions
+		self.cur_aspect_ratio=float(c)/float(d) # width/height, used for scaling in drawWidget
 		rect=QRect(a,b,c,d)
 		self.pic=QPixmap(self.fname)
 		self.pic=self.pic.copy(rect)
@@ -305,24 +307,21 @@ class MapWidget(QWidget):
 	def drawWidget(self,qp):
 		height,width=self.size().height(),self.size().width()
 
-		self.pic=self.pic.scaled(width-50,height-50)
+		pic_width=width-50
+		pic_height=int(pic_width/self.cur_aspect_ratio)
+
+		#self.pic=self.pic.scaled(width-50,height-50)
+		self.pic=self.pic.scaled(pic_width,pic_height)
 		qp.drawPixmap(0,0,self.pic)
-		'''
-		if not self.vertical:
-			self.pic=self.pic.scaled(width/2,height-50)
-			qp.drawPixmap(width/3,0,self.pic)
-		else:
-			qp.drawPixmap(0,0,self.pic)
-		'''
 
 		qp.setBrush(QColor(0,0,0))
 
 		if self.vertical: # drawing vertical line
-			mid_pt=int(width)/2
-			qp.drawLine(mid_pt,0,mid_pt,height-50)
+			mid_pt=int(pic_width)/2
+			qp.drawLine(mid_pt,0,mid_pt,pic_height)
 		else: # horizontal line
-			mid_pt=int(height)/2
-			qp.drawLine(0,mid_pt,width,mid_pt)
+			mid_pt=int(pic_height)/2
+			qp.drawLine(0,mid_pt,pic_width,mid_pt)
 
 		if self.mouse_present:
 			opaque_brush=QBrush(QColor(0,0,0,100))
@@ -330,14 +329,14 @@ class MapWidget(QWidget):
 
 			if self.vertical:
 				if self.last_x<=mid_pt:
-					qp.drawRect(0,0,mid_pt,height-50)
+					qp.drawRect(0,0,mid_pt,pic_height)
 				else:
-					qp.drawRect(mid_pt,0,width-50,height-50)
+					qp.drawRect(mid_pt,0,pic_width,pic_height)
 			else: 
 				if self.last_y<=mid_pt:
-					qp.drawRect(0,0,width-50,mid_pt)
+					qp.drawRect(0,0,pic_width,mid_pt)
 				else:
-					qp.drawRect(0,mid_pt,width,height)
+					qp.drawRect(0,mid_pt,pic_width,pic_height)
 
 
 class MainWindow(QWidget):
