@@ -168,7 +168,9 @@ class MapWidget(QWidget):
 		self.mouse_present=False
 		self.setMouseTracking(True)
 
-		self.orig_dimensions=[0,0,22875,11678] # dimensions of original image
+		self.pic=QPixmap(self.fname)
+		width,height=self.pic.size().width(),self.pic.size().height()
+		self.orig_dimensions=[0,0,width,height] # dimensions of original image
 		self.cur_dimensions=deepcopy(self.orig_dimensions)
 		
 		                 # upper left,     bottom right
@@ -182,7 +184,6 @@ class MapWidget(QWidget):
 		print 'long_per_pixel:',self.long_per_pixel
 		print 'lat_per_pixel:',self.lat_per_pixel
 
-		self.pic=QPixmap(self.fname)
 		a,b,c,d=self.cur_dimensions
 		rect=QRect(a,b,c,d)
 		self.pic=self.pic.copy(rect)
@@ -212,13 +213,16 @@ class MapWidget(QWidget):
 		elif desc=='right': # top left longitude different
 			top_left[0]=top_left[0]-((top_left[0]-bottom_right[0])/2)
 		elif desc=='top': # bottom right latitude different
-			bottom_right[1]=bottom_right[1]-((top_left[1]-bottom_right[1])/2)
+			bottom_right[1]=bottom_right[1]+((top_left[1]-bottom_right[1])/2)
 		elif desc=='bottom': # top left latitude different
-			top_left[1]=bottom_right[1]-((top_left[1]-bottom_right[1])/2)
+			top_left[1]=bottom_right[1]+((top_left[1]-bottom_right[1])/2)
 		else:
 			raise Exception('get_region_bounds was passed invalid desc!')
-		return [top_left,bottom_right]
 
+		print 'Clicked in %s'%desc
+		print 'Prior geo bounds:',self.cur_bounds
+		print 'New geo bounds:  ',[top_left,bottom_right]
+		return [top_left,bottom_right]
 
 	def mousePressEvent(self,event):
 		# when mouse clicks somewhere
@@ -302,11 +306,14 @@ class MapWidget(QWidget):
 		height,width=self.size().height(),self.size().width()
 
 		self.pic=self.pic.scaled(width-50,height-50)
+		qp.drawPixmap(0,0,self.pic)
+		'''
 		if not self.vertical:
 			self.pic=self.pic.scaled(width/2,height-50)
 			qp.drawPixmap(width/3,0,self.pic)
 		else:
 			qp.drawPixmap(0,0,self.pic)
+		'''
 
 		qp.setBrush(QColor(0,0,0))
 
@@ -318,7 +325,7 @@ class MapWidget(QWidget):
 			qp.drawLine(0,mid_pt,width,mid_pt)
 
 		if self.mouse_present:
-			opaque_brush=QBrush(QColor(0,0,0,200))
+			opaque_brush=QBrush(QColor(0,0,0,100))
 			qp.setBrush(opaque_brush)
 
 			if self.vertical:
@@ -341,7 +348,8 @@ class MainWindow(QWidget):
 		self.init_ui()
 
 	def init_vars(self):
-		self.image_fname='data/maps/usa_map.png'
+		#self.image_fname='data/maps/usa_map.png'
+		self.image_fname='data/maps/usa_map_downscale.png'
 		self.min_width=1200
 		self.min_height=800
 		self.score=1
