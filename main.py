@@ -310,21 +310,31 @@ class MapWidget(QWidget):
 	def drawWidget(self,qp):
 		height,width=self.size().height(),self.size().width()
 
-		pic_width=width-50
-		pic_height=int(pic_width/self.cur_aspect_ratio)
+		if self.vertical:
+			pic_width=width-50
+			pic_height=int(pic_width/self.cur_aspect_ratio)
+
+			x_offset=0
+			y_offset=(height-pic_height)/2
+		else:
+			pic_height=height-50
+			pic_width=int(pic_height*self.cur_aspect_ratio)
+
+			x_offset=(width-pic_width)/2
+			y_offset=0
 
 		#self.pic=self.pic.scaled(width-50,height-50)
 		self.pic=self.pic.scaled(pic_width,pic_height)
-		qp.drawPixmap(0,0,self.pic)
+		qp.drawPixmap(x_offset,y_offset,self.pic)
 
 		qp.setBrush(QColor(0,0,0))
 
 		if self.vertical: # drawing vertical line
 			mid_pt=int(pic_width)/2
-			qp.drawLine(mid_pt,0,mid_pt,pic_height)
+			qp.drawLine(mid_pt,y_offset,mid_pt,pic_height+y_offset)
 		else: # horizontal line
 			mid_pt=int(pic_height)/2
-			qp.drawLine(0,mid_pt,pic_width,mid_pt)
+			qp.drawLine(x_offset,mid_pt,pic_width+x_offset,mid_pt)
 
 		if self.mouse_present:
 			opaque_brush=QBrush(QColor(0,0,0,100))
@@ -332,14 +342,14 @@ class MapWidget(QWidget):
 
 			if self.vertical:
 				if self.last_x<=mid_pt:
-					qp.drawRect(0,0,mid_pt,pic_height)
+					qp.drawRect(0,y_offset,mid_pt,pic_height)
 				else:
-					qp.drawRect(mid_pt,0,pic_width,pic_height)
+					qp.drawRect(mid_pt,y_offset,pic_width-mid_pt,pic_height)
 			else: 
 				if self.last_y<=mid_pt:
-					qp.drawRect(0,0,pic_width,mid_pt)
+					qp.drawRect(x_offset,0,pic_width,mid_pt)
 				else:
-					qp.drawRect(0,mid_pt,pic_width,pic_height)
+					qp.drawRect(x_offset,mid_pt,pic_width,pic_height-mid_pt)
 
 
 class MainWindow(QWidget):
@@ -387,7 +397,6 @@ class MainWindow(QWidget):
 		self.window_layout.addLayout(main_row,2)
 		self.window_layout.addLayout(target_row)
 		self.resize(self.min_width,self.min_height)
-		self.update_picture()
 		self.set_target()
 		self.show()
 		self.raise_()
@@ -403,12 +412,23 @@ class MainWindow(QWidget):
 				return True
 		return False
 
+	def is_win(self,targ_bnd,rgn_bnd):
+		if (rgn_bnd[0][1]-rgn_bnd[1][1])<=5:
+			if (rgn_bnd[1][0]-rgn_bnd[0][0])<=5:
+				return True
+		return False
+
 	def region_clicked(self,region_bounds):
 		targ_bounds=self.current_target['coords']
 		print 'Target geo bounds:',targ_bounds
 		if self.is_within(targ_bounds,region_bounds)==True:
-			#print '%s is within the selection'%self.current_target['city']
-			self.map_widget.zoom(region_bounds)
+			if self.is_win(targ_bounds,region_bounds)==True:
+				print 'ROUND COMPLETE'
+				self.score+=1
+				self.set_target()
+				self.map_widget.restart()
+			else:
+				self.map_widget.zoom(region_bounds)
 		else:
 			print 'GAME OVER'
 
@@ -433,15 +453,6 @@ class MainWindow(QWidget):
 				for j in range(2):
 					x[i][j]=float(x[i][j])
 			self.current_target['coords']=x
-
-
-	def update_picture(self):
-		sys.stdout.write('\nImporting image...')
-		self.map_widget.repaint()
-		#self.current_frame=QPixmap(self.image_fname)
-		#self.current_frame=self.current_frame.scaled(self.size().width()-50,self.size().height()-75)
-		#self.map_widget.setPixmap(self.current_frame)
-		sys.stdout.write(' done!\n')
 
 	def resizeEvent(self,e):
 		sys.stdout.write('\nImporting image...')
