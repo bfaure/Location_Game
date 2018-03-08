@@ -167,6 +167,7 @@ class MapWidget(QWidget):
 		self.last_x,self.last_y=None,None # mouse coordinates
 		self.mouse_present=False
 		self.setMouseTracking(True)
+		self.last_clicked=None # last part of map clicked
 
 		self.pic=QPixmap(self.fname)
 		width,height=self.pic.size().width(),self.pic.size().height()
@@ -232,14 +233,18 @@ class MapWidget(QWidget):
 			if self.vertical:
 				mid_pt=int(width)/2
 				if self.last_x<=mid_pt:
+					self.last_clicked='left'
 					self.parent.region_clicked(self.get_region_bounds('left'))
 				else:
+					self.last_clicked='right'
 					self.parent.region_clicked(self.get_region_bounds('right'))
 			else:
 				mid_pt=int(height)/2
 				if self.last_y<=mid_pt:
+					self.last_clicked='top'
 					self.parent.region_clicked(self.get_region_bounds('top'))
 				else:
+					self.last_clicked='bottom'
 					self.parent.region_clicked(self.get_region_bounds('bottom'))
 
 	def zoom(self,new_geo_bounds):
@@ -250,29 +255,27 @@ class MapWidget(QWidget):
 
 		new_picture_bounds=deepcopy(self.cur_dimensions)
 
-		# top left longitude component
-		if cur_geo_bounds[0][0]!=new_geo_bounds[0][0]: 
-			diff=new_geo_bounds[0][0]-cur_geo_bounds[0][0]
-			pixel_offset=diff/self.long_per_pixel 
-			new_picture_bounds[0]+=pixel_offset
+		left_x,right_x=cur_picture_bounds[0],cur_picture_bounds[2]
+		top_y,bottom_y=cur_picture_bounds[1],cur_picture_bounds[3]
 
-		# bottom right longitude component
-		if cur_geo_bounds[1][0]!=new_geo_bounds[1][0]: 
-			diff=new_geo_bounds[1][0]-cur_geo_bounds[1][0]
-			pixel_offset=diff/self.long_per_pixel
-			new_picture_bounds[2]+=pixel_offset
+		if self.last_clicked=='left':
+			offset=int((right_x-left_x)/2.0)
+			new_picture_bounds[2]-=offset 
 
-		# top left latitude component
-		if cur_geo_bounds[0][1]!=new_geo_bounds[0][1]:
-			diff=cur_geo_bounds[0][1]-new_geo_bounds[0][1]
-			pixel_offset=diff/self.lat_per_pixel
-			new_picture_bounds[1]+=pixel_offset
+		elif self.last_clicked=='right':
+			offset=int((right_x-left_x)/2.0)
+			new_picture_bounds[0]+=offset
 
-		# bottom right latitude component
-		if cur_geo_bounds[1][1]!=new_geo_bounds[1][1]:
-			diff=cur_geo_bounds[1][1]-new_geo_bounds[1][1]
-			pixel_offset=diff/self.lat_per_pixel 
-			new_picture_bounds[3]-=pixel_offset
+		elif self.last_clicked=='top':
+			offset=int((bottom_y-top_y)/2.0)
+			new_picture_bounds[3]-=offset
+
+		elif self.last_clicked=='bottom':
+			offset=int((bottom_y-top_y)/2.0)
+			new_picture_bounds[1]+=offset
+
+		else:
+			raise Exception('zoom: self.last_clicked value error!')
 
 		new_picture_bounds=[int(e) for e in new_picture_bounds]
 
@@ -282,7 +285,7 @@ class MapWidget(QWidget):
 		self.cur_dimensions=new_picture_bounds
 		self.cur_bounds=new_geo_bounds
 		a,b,c,d=self.cur_dimensions
-		self.cur_aspect_ratio=float(c)/float(d) # width/height, used for scaling in drawWidget
+		self.cur_aspect_ratio=float(c-a)/float(d-b) # width/height, used for scaling in drawWidget
 		rect=QRect(a,b,c,d)
 		self.pic=QPixmap(self.fname)
 		self.pic=self.pic.copy(rect)
@@ -402,8 +405,9 @@ class MainWindow(QWidget):
 
 	def region_clicked(self,region_bounds):
 		targ_bounds=self.current_target['coords']
+		print 'Target geo bounds:',targ_bounds
 		if self.is_within(targ_bounds,region_bounds)==True:
-			print '%s is within the selection'%self.current_target['city']
+			#print '%s is within the selection'%self.current_target['city']
 			self.map_widget.zoom(region_bounds)
 		else:
 			print 'GAME OVER'
