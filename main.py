@@ -369,7 +369,7 @@ class MainWindow(QWidget):
 
 	def init_ui(self):
 		
-		self.setWindowTitle('Location Game')
+		self.setWindowTitle('Location Game - Score: 0')
 		self.window_layout=QVBoxLayout(self)
 		self.window_layout.addSpacing(25)
 		self.map_widget=MapWidget(self.image_fname,self)
@@ -402,6 +402,7 @@ class MainWindow(QWidget):
 		self.raise_()
 
 	def restart(self):
+		self.setWindowTitle('Location Game - Score: 0')
 		self.score=1
 		self.set_target()
 		self.map_widget.restart()
@@ -425,6 +426,7 @@ class MainWindow(QWidget):
 			if self.is_win(targ_bounds,region_bounds)==True:
 				print 'ROUND COMPLETE'
 				self.score+=1
+				self.setWindowTitle('Location Game - Score: %d'%(self.score-1))
 				self.set_target()
 				self.map_widget.restart()
 			else:
@@ -439,8 +441,8 @@ class MainWindow(QWidget):
 		self.quit()
 
 	def set_target(self):
-		start_idx=-1*self.score
-		end_idx=-1*self.score-10
+		start_idx=-1*(self.score*10)
+		end_idx=-1*(self.score*10)-20
 		idx=randint(end_idx,start_idx)
 		self.current_target=self.places[idx]
 		self.target_box.setText('%s, %s'%(
